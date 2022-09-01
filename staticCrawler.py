@@ -9,13 +9,17 @@ class StaticCrawler:
     def __init__(self) : 
         pass 
         
-        
-    
-    
     def contribute(self):
         r = requests.get(self.url)
         soup = bs(r.content,'html.parser')
-        self.findingTopics(soup,'hich')
+        new = self.findingTopics(soup,'hich')
+        newURL = self.url+new
+        r2= requests.get(newURL)
+        soupFinal = bs(r2.content,'html.parser')
+        print("Now Try it Yourself!!!")
+        tryItYourSelf = soupFinal.find_all("a", string="Try it Yourself »",target="_blank")
+        for links in tryItYourSelf:
+            print(self.url+links['href'])
         
     def findingTopics(self,soup,sub):
         topic = soup.find(id= 'leftmenuinnerinner')
@@ -32,10 +36,10 @@ class StaticCrawler:
         list=[]
         while(True):
             if temp.nextSibling != bigTopics[theChosenOne] :
-                if isinstance(temp,Comment):
+                if isinstance(temp,Comment) :
                     temp = temp.nextSibling
                     continue
-                if temp.text!= '\n':
+                if temp.text!= '\n' and temp.name != 'br':
                     list.append(temp)
                 temp = temp.nextSibling
             else:
@@ -46,18 +50,37 @@ class StaticCrawler:
                 print(str(counter2) + '- ' + items.text)
                 counter2+=1
         print('----------------')
+        
+        counter3=1
         theChosenOne = self.userInputManager(counter2-1,sub)
-        temp = list[theChosenOne-1]
-        if list[theChosenOne].name != 'div':
+        #iterate subtopics and get new link
+        noDiv=[]
+        noDiv=self.divRemover(list)
+        index = list.index(noDiv[theChosenOne-1])
+        return self.newLinkMaker(list,index)
+   
+    def newLinkMaker(self,list,theChosenOne):
+        subCounter = 1
+        list2=[]
+        if theChosenOne==len(list)-1 or list[theChosenOne+1].name != 'div':
             newURL=str(list[theChosenOne]['href'])
-            print(newURL)
+            return newURL
             
         else:
-            subTopics = list[theChosenOne].findAll('a')
+            subTopics = list[theChosenOne+1].findAll('a')
             for subtopic in subTopics:
-                print(subtopic.text)
-                
-                
+                print(str(subCounter) + '- ' +subtopic.text)
+                subCounter+=1
+            theChosenOne = self.userInputManager(subCounter-1,'sub') 
+            newURL = str(subTopics[theChosenOne-1]['href'])
+            return newURL
+                       
+    def divRemover(self,list):
+        newList=[]
+        for items in list:
+            if items.name != 'div':
+                newList.append(items)
+        return newList
         
     def userInputManager(self,size,sub):
         while (True):
